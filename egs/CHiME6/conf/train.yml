@@ -1,0 +1,59 @@
+model: tcn
+task: count
+feats:
+  type: mfcc_kaldi # filterbanks actually if num ceps == num mels
+  hop_size: 0.01
+  n_feats: 80
+  inject_noise: false
+mels:
+  n_mels: 40
+  n_fft: 400
+  win_length: 400
+  hop_length: 160
+mfcc:
+  sample_rate: 16000
+  n_mfcc: 40
+  log_mels: true
+mfcc_kaldi:
+  use_energy: false
+  sample_frequency: 16000
+  num_mel_bins: 80
+  num_ceps: 80
+  low_freq: 40
+  high_freq: -400
+  dither: 0.0
+fbank_kaldi:
+  use_energy: false
+  sample_frequency: 16000
+  num_mel_bins: 80
+  low_freq: 80
+  high_freq: -400
+  dither: 0.00000001
+spectrogram_kaldi:
+  sample_frequency: 16000
+  dither: 0.0
+labels:
+  merge_vad: 0.0
+  merge_ph: 0.0
+  collar_ph: 0.00
+data:
+  n_classes: 5
+  segment: 600
+  fs: 16000
+  custom_json_folder:
+  chime6_root: /media/sam/cb915f0e-e440-414c-bb74-df66b311d09d/CHiME6/
+  label_train: /media/sam/cb915f0e-e440-414c-bb74-df66b311d09d/labels_json/train
+  label_val: /media/sam/cb915f0e-e440-414c-bb74-df66b311d09d/labels/dev
+opt:
+  lr: 0.0001
+training:
+  batch_size: 16
+  num_workers: 8
+  n_epochs: 200
+  gradient_clip: 5
+  accumulate_batches: 1
+augmentation:
+  probs: [0.4, 0.6]
+  abs_stats: [-21.7, 7]
+  rel_stats: [2.78, 4]
+
