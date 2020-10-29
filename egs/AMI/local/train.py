@@ -13,7 +13,7 @@ from SSAD.utils import BinaryMeter, MultiMeter
 from online_data import OnlineFeats,OnlineChunkedFeats
 import numpy as np
 
-parser = argparse.ArgumentParser(description="train a cycleGAN based Single-channel domain adaptation algo for chime-6")
+parser = argparse.ArgumentParser(description="Training a counting/overlapping speech detection net on AMI")
 parser.add_argument("conf_file", type=str)
 parser.add_argument("log_dir", type=str)
 parser.add_argument("gpus", type=str)
