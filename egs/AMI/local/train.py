@@ -5,7 +5,6 @@ from torch import nn
 import torch
 from collections import OrderedDict
 import pytorch_lightning as pl
-import torch.nn.functional as F
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 from torch.utils.data import DataLoader
@@ -28,8 +27,6 @@ class PlainModel(nn.Module):
     def forward(self, tf_rep):
 
         mask = self.model(tf_rep)
-
-        mask = F.softmax(mask, 1)
 
         return mask
 
