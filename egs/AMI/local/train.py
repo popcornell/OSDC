@@ -6,14 +6,13 @@ import torch
 from collections import OrderedDict
 import pytorch_lightning as pl
 import torch.nn.functional as F
-from pytorch_lightning.logging import TensorBoardLogger
+from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 from torch.utils.data import DataLoader
-from SSAD.utils import BinaryMeter, MultiMeter
-from online_data import OnlineFeats,OnlineChunkedFeats
-import numpy as np
+from osdc.utils import BinaryMeter, MultiMeter
+from online_data import OnlineFeats
 
-parser = argparse.ArgumentParser(description="train a cycleGAN based Single-channel domain adaptation algo for chime-6")
+parser = argparse.ArgumentParser(description="OSDC on AMI")
 parser.add_argument("conf_file", type=str)
 parser.add_argument("log_dir", type=str)
 parser.add_argument("gpus", type=str)
@@ -35,18 +34,19 @@ class PlainModel(nn.Module):
         return mask
 
 
-class SSAD(pl.LightningModule):
+class OSDC_AMI(pl.LightningModule):
 
     '''
     Plain cycle routine we have 2 discriminators and two generators
     '''
 
     def __init__(self, hparams):
-        super(SSAD, self).__init__()
+        super(OSDC_AMI, self).__init__()
         self.configs = hparams # avoid pytorch-lightning hparams logging
 
         if not self.configs["augmentation"]["probs"]:
-            cross = nn.CrossEntropyLoss(torch.Tensor([1.74, 1.0, 11.98, 219, 1000]).cuda(), reduction="none") #orch.Tensor([2.4, 1.0, 2.87, 11.46, 30]).cuda()
+            # these are determined by looking at tensoboard statistics: used to fight imbalancing
+            cross = nn.CrossEntropyLoss(torch.Tensor([1.74, 1.0, 11.98, 219, 1000]).cuda(), reduction="none")
         else:
             cross = nn.CrossEntropyLoss(torch.Tensor([1.0, 2.13, 6.89, 20, 115]).cuda(), reduction="none")
 
@@ -59,13 +59,10 @@ class SSAD(pl.LightningModule):
         self.val_vad_metrics = BinaryMeter()
         self.val_osd_metrics = BinaryMeter()
 
-        from SSAD.models.tcn import TCN
+        from osdc.models.tcn import TCN
         self.model = PlainModel(TCN(80, 5, 1, 5, 3, 64, 128))
 
-        #from radam import RAdam
-        from asranger import Ranger
-        self.opt = Ranger(self.model.parameters(), self.configs["opt"]["lr"])
-        self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.opt)
+
 
     def forward(self, *args, **kwargs):
         pass
@@ -82,7 +79,6 @@ class SSAD(pl.LightningModule):
         #self.train_osd_metrics.update(torch.argmax(torch.cat((preds[:, :2], torch.sum(preds[:, 2:], 1, keepdim=True)),1), 1), torch.clamp(label, 0, 2))
         self.train_osd_metrics.update(torch.sum(preds[:, 2:], 1), label >= 2)
 
-        tqdm_dict = {'loss': loss}
 
         tensorboard_logs = {'train_batch_loss': loss,
                             'train_tp_count': self.train_count_metrics.get_tp(),
@@ -110,7 +106,6 @@ class SSAD(pl.LightningModule):
 
         output = OrderedDict({
                 'loss': loss,
-                'progress_bar': tqdm_dict,
                 'log': tensorboard_logs
             })
         return output
@@ -172,9 +167,17 @@ class SSAD(pl.LightningModule):
 
     def configure_optimizers(self):
 
-        return [self.opt], [self.scheduler]
+        opt = torch.optim.Adam(self.model.parameters(),
+                                    self.configs["opt"]["lr"])
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(opt)
 
-    @pl.data_loader
+        return {
+            'optimizer': opt,
+            'lr_scheduler': scheduler,
+            'monitor': 'val_loss'
+        }
+
+
     def train_dataloader(self):
         dataset = OnlineFeats(self.configs["data"]["chime6_root"], self.configs["data"]["label_train"],
                               self.configs, probs=self.configs["augmentation"]["probs"], segment=self.configs["data"]["segment"])
@@ -182,7 +185,7 @@ class SSAD(pl.LightningModule):
                                 shuffle=True, num_workers=self.configs["training"]["num_workers"], drop_last=True)
         return dataloader
 
-    @pl.data_loader
+
     def val_dataloader(self):
 
         dataset = OnlineFeats(self.configs["data"]["chime6_root"], self.configs["data"]["label_val"],
@@ -200,7 +203,7 @@ if __name__ == "__main__":
 
     # test if compatible with lightning
     confs.update(args.__dict__)
-    a = SSAD(confs)
+    a = OSDC_AMI(confs)
 
     checkpoint_dir = os.path.join(confs["log_dir"], 'checkpoints/')
     checkpoint = ModelCheckpoint(checkpoint_dir, monitor='val_loss',
@@ -218,10 +221,9 @@ if __name__ == "__main__":
 
     logger = TensorBoardLogger(os.path.dirname(confs["log_dir"]), confs["log_dir"].split("/")[-1])
 
-    trainer = pl.Trainer(max_nb_epochs=confs["training"]["n_epochs"], gpus=confs["gpus"], checkpoint_callback=checkpoint,
-                         accumulate_grad_batches=confs["training"]["accumulate_batches"], early_stop_callback=early_stop_callback,
+    trainer = pl.Trainer(max_epochs=confs["training"]["n_epochs"], gpus=confs["gpus"], checkpoint_callback=checkpoint,
+                         accumulate_grad_batches=confs["training"]["accumulate_batches"], callbacks=[early_stop_callback],
                          logger = logger,
-                         gradient_clip=bool(confs["training"]["gradient_clip"]),
                          gradient_clip_val=confs["training"]["gradient_clip"]
                          )
     trainer.fit(a)

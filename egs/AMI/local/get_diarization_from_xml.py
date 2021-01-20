@@ -3,10 +3,10 @@ import os
 import glob
 import json
 from pathlib import Path
-import re
 import xml.etree.ElementTree as ET
 
-parser = argparse.ArgumentParser("Parsing Forced alignments")
+parser = argparse.ArgumentParser("Parsing AMI .xml annotation "
+                                 "to .json file which contains diarization for each speaker")
 parser.add_argument("xml_dir")
 parser.add_argument("falign_dir")
 parser.add_argument("output_json")

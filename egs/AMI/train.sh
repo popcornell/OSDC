@@ -5,4 +5,4 @@ CONFS=conf/train.yml
 
 mkdir -p $EXP_DIR
 cp -r local $EXP_DIR/code
-python local/train_crnn.py $CONFS $EXP_DIR $gpus
+python local/train.py $CONFS $EXP_DIR $gpus

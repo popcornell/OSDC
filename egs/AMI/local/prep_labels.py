@@ -4,7 +4,7 @@ import numpy as np
 import argparse
 import json
 import yaml
-from SSAD.utils.annotations import merge_intervals
+from osdc.utils.annotations import merge_intervals
 import glob
 from pathlib import Path
 

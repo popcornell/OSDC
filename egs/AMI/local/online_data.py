@@ -5,7 +5,7 @@ from pathlib import Path
 import soundfile as sf
 import numpy as np
 import torch
-from SSAD.utils.oladd import _gen_frame_indices
+from osdc.utils.oladd import _gen_frame_indices
 import random
 from pysndfx import AudioEffectsChain
 
