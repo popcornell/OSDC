@@ -111,7 +111,7 @@ class OSDC_AMI(pl.LightningModule):
 
         feats, label, _ = batch
         preds = self.model(feats)
-        loss = self.loss(preds, label)
+        loss = self.loss(preds, label).mean()
         self.val_count_metrics.update(torch.argmax(preds, 1), label)
         self.val_vad_metrics.update(torch.sum(preds[:, 1:], 1), label >= 1)
         #self.val_osd_metrics.update(torch.argmax(torch.cat((preds[:, :2], torch.sum(preds[:, 2:], 1, keepdim=True)),1),1), torch.clamp(label, 0, 2))
@@ -221,6 +221,6 @@ if __name__ == "__main__":
     trainer = pl.Trainer(max_epochs=confs["training"]["n_epochs"], gpus=confs["gpus"], checkpoint_callback=checkpoint,
                          accumulate_grad_batches=confs["training"]["accumulate_batches"], callbacks=[early_stop_callback],
                          logger = logger,
-                         gradient_clip_val=confs["training"]["gradient_clip"]
+                         gradient_clip_val=confs["training"]["gradient_clip"], limit_train_batches=10
                          )
     trainer.fit(a)
