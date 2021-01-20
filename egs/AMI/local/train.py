@@ -221,6 +221,6 @@ if __name__ == "__main__":
     trainer = pl.Trainer(max_epochs=confs["training"]["n_epochs"], gpus=confs["gpus"], checkpoint_callback=checkpoint,
                          accumulate_grad_batches=confs["training"]["accumulate_batches"], callbacks=[early_stop_callback],
                          logger = logger,
-                         gradient_clip_val=confs["training"]["gradient_clip"], limit_train_batches=10
+                         gradient_clip_val=confs["training"]["gradient_clip"]
                          )
     trainer.fit(a)
