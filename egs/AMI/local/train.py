@@ -71,6 +71,7 @@ class OSDC_AMI(pl.LightningModule):
         loss = self.loss(preds, label)
         loss = loss*mask.detach()
         loss = loss.mean()
+        preds = torch.softmax(preds, 1)
         self.train_count_metrics.update(torch.argmax(preds, 1), label)
         self.train_vad_metrics.update(torch.sum(preds[:, 1:], 1), label >= 1)
         #self.train_osd_metrics.update(torch.argmax(torch.cat((preds[:, :2], torch.sum(preds[:, 2:], 1, keepdim=True)),1), 1), torch.clamp(label, 0, 2))
@@ -112,6 +113,7 @@ class OSDC_AMI(pl.LightningModule):
         feats, label, _ = batch
         preds = self.model(feats)
         loss = self.loss(preds, label).mean()
+        preds = torch.softmax(preds, 1)
         self.val_count_metrics.update(torch.argmax(preds, 1), label)
         self.val_vad_metrics.update(torch.sum(preds[:, 1:], 1), label >= 1)
         #self.val_osd_metrics.update(torch.argmax(torch.cat((preds[:, :2], torch.sum(preds[:, 2:], 1, keepdim=True)),1),1), torch.clamp(label, 0, 2))
@@ -125,9 +127,9 @@ class OSDC_AMI(pl.LightningModule):
 
         return output
 
-    def validation_end(self, outputs):
+    def validation_step_end(self, outputs):
 
-        avg_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
+        avg_loss = outputs["val_loss"].mean()
         tqdm_dict = {'val_loss': avg_loss}
         tensorboard_logs = {'val_loss': avg_loss,
                             'val_tp_count': self.val_count_metrics.get_tp(),
@@ -165,7 +167,7 @@ class OSDC_AMI(pl.LightningModule):
     def configure_optimizers(self):
 
         opt = torch.optim.Adam(self.model.parameters(),
-                                    self.configs["opt"]["lr"])
+                                    self.configs["opt"]["lr"], weight_decay=self.configs["opt"]["weight_decay"])
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(opt)
 
         return {
