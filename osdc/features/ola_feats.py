@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-from SSAD.utils.oladd import _gen_frame_indices
+from osdc.utils.oladd import _gen_frame_indices
 
 
 def compute_feats_windowed(feats_func, audio, winsize=16000*30, stride=(16000*30-160*2)):

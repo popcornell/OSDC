@@ -16,7 +16,7 @@ parser.add_argument("checkpoint_name", type=str)
 parser.add_argument("wav_dir", type=str)
 parser.add_argument("out_dir", type=str)
 parser.add_argument("gpus", type=str, default="0")
-parser.add_argument("--window_size", type=int, default=200)
+parser.add_argument("--window_size", type=int, default=600)
 parser.add_argument("--lookahead", type=int, default=200)
 parser.add_argument("--lookbehind", type=int, default=200)
 parser.add_argument("--regex", type=str, default="")
@@ -31,7 +31,6 @@ def plain_single_file_predict(model, wav_dir, train_configs, out_dir, window_siz
     for wav in wavs:
         print("Processing File {}".format(wav))
         audio, _ = sf.read(wav)
-
 
         if train_configs["feats"]["type"] == "mfcc_kaldi":
             feats_func = lambda x: mfcc(torch.from_numpy(x.astype("float32").reshape(1, -1)),
